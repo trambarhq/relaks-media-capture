@@ -1,0 +1,50 @@
+{
+  "name": "relaks-media-capture",
+  "description": "Audio and video capturing using Relaks",
+  "author": "Chung Leong",
+  "version": "0.0.1",
+  "main": "./index.js",
+  "preferGlobal": false,
+  "repository": "git://github.com/trambarhq/relaks-media-capture.git",
+  "homepage": "https://github.com/trambarhq/relaks-media-capture",
+  "bugs": {
+    "url": "http://github.com/trambarhq/relaks-media-capture/issues"
+  },
+  "license": "MIT",
+  "keywords": [
+    "react",
+    "preact",
+    "relaks",
+    "video",
+    "audio"
+  ],
+  "tags": [
+    "react",
+    "relaks",
+    "preact"
+  ],
+  "scripts": {
+    "test": "./node_modules/karma/bin/karma start --single-run",
+    "test:start": "./node_modules/karma/bin/karma start"
+  },
+  "dependencies": {
+    "relaks-event-emitter": "0.0.1"
+  },
+  "devDependencies": {
+    "babel-core": "^6.26.3",
+    "babel-loader": "^7.0.0",
+    "babel-preset-env": "^1.7.0",
+    "chai": "^3.5.0",
+    "chai-as-promised": "^7.1.1",
+    "karma": "^3.0.0",
+    "karma-babel-preprocessor": "^6.0.1",
+    "karma-chai": "^0.1.0",
+    "karma-chrome-launcher": "^2.1.1",
+    "karma-mocha": "^1.3.0",
+    "karma-sourcemap-loader": "^0.3.7",
+    "karma-webpack": "^3.0.0",
+    "lodash": "^4.17.10",
+    "mocha": "^5.2.0",
+    "webpack": "^3.0.1"
+  }
+}

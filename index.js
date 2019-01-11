@@ -6,7 +6,8 @@ var defaultOptions = {
     audio: true,
     preferredDevice: 'front',
     chooseNewDevice: true,
-    watchVolume: true,
+    captureImageOnly: false,
+    watchVolume: false,
     deactivationDelay: 0,
     segmentDuration: undefined,
     videoMIMEType: 'video/webm',
@@ -17,6 +18,7 @@ var defaultOptions = {
 };
 
 function RelaksMediaCapture(options) {
+    EventEmitter.call(this);
     this.options = {};
     this.status = undefined;
     this.liveVideo = undefined;
@@ -67,7 +69,7 @@ var prototype = RelaksMediaCapture.prototype = Object.create(EventEmitter.protot
 prototype.activate = function() {
     if (!this.active) {
         if (this.capturedVideo || this.capturedAudio || this.capturedImage) {
-            // can't reactivate without calling reset() first
+            // can't reactivate without calling clear() first
             return;
         }
         this.acquire();
@@ -130,7 +132,7 @@ prototype.acquire = function() {
             var criteria = { deviceId: device.id };
             if (constraints.video) {
                 constraints.video = criteria;
-            } else if (constraint.audio) {
+            } else if (constraints.audio) {
                 constraints.audio = criteria;
             }
         }
@@ -140,26 +142,34 @@ prototype.acquire = function() {
             _this.devices = devices;
             _this.selectedDeviceID = (device) ? device.id : undefined;
             _this.notifyChange();
-            return getMediaStreamMeta(stream).then(function(meta) {
-                _this.stream = stream;
-                if (constraints.video) {
+
+            if (constraints.video) {
+                return getVideoStreamMeta(stream).then(function(meta) {
+                    _this.stream = stream;
                     _this.liveVideo = {
                         stream: stream,
                         height: meta.height,
                         width: meta.width,
                     };
-                } else if (constraints.audio) {
-                    _this.liveAudio = {
-                        stream: stream,
-                    };
-                }
-                if (_this.options.watchVolume && constraints.audio) {
+                    if (_this.options.watchVolume && constraints.audio) {
+                        _this.watchAudioVolume();
+                    }
+                    _this.watchStreamStatus();
+                    _this.status = 'previewing';
+                    _this.notifyChange();
+                });
+            } else if (constraints.audio) {
+                _this.stream = stream;
+                _this.liveAudio = {
+                    stream: stream,
+                };
+                if (_this.options.watchVolume) {
                     _this.watchAudioVolume();
                 }
                 _this.watchStreamStatus();
                 _this.status = 'previewing';
                 _this.notifyChange();
-            });
+            }
         }).catch(function(err) {
             _this.lastError = err;
             _this.status = 'denied';
@@ -180,8 +190,8 @@ prototype.start = function() {
     if (this.mediaRecorder) {
         return;
     }
-    let segmentDuration = this.options.segmentDuration;
-    let options = {};
+    var segmentDuration = this.options.segmentDuration;
+    var options = {};
     if (this.options.audio) {
         options.audioBitsPerSecond = this.options.audioBitsPerSecond;
         options.mimeType = this.options.audioMIMEType;
@@ -236,7 +246,11 @@ prototype.snap = function() {
     var _this = this;
     var mimeType = this.options.imageMIMEType;
     var quality = this.options.imageQuality || 90;
-    getMediaStreamSnapshot(this.stream).then(function(canvas) {
+    var imageOnly = this.options.captureImageOnly;
+    if (!this.liveVideo) {
+        throw new RelaksMediaCaptureError('No video stream');
+    }
+    getVideoStreamSnapshot(this.stream).then(function(canvas) {
         saveCanvasContents(canvas, mimeType, quality).then(function(blob) {
             var url = URL.createObjectURL(blob);
             _this.capturedImage = {
@@ -245,7 +259,12 @@ prototype.snap = function() {
                 width: canvas.width,
                 height: canvas.height,
             };
+            if (imageOnly) {
+                _this.status = 'captured';
+            }
             _this.notifyChange();
+        }).catch(function(err) {
+            console.error(err);
         });
     });
 };
@@ -349,7 +368,7 @@ prototype.extract = function() {
     var media = {};
     if (this.capturedVideo) {
         media.video = {
-            blob: this.capturedVideo,
+            blob: this.capturedVideo.blob,
             width: this.capturedVideo.width,
             height: this.capturedVideo.height,
             duration: this.capturedVideo.duration,
@@ -357,13 +376,13 @@ prototype.extract = function() {
     }
     if (this.capturedAudio) {
         media.audio = {
-            blob: this.capturedVideo,
-            duration: this.capturedVideo.duration,
+            blob: this.capturedAudio.blob,
+            duration: this.capturedAudio.duration,
         };
     }
     if (this.capturedImage) {
         media.image = {
-            blob: this.capturedImage,
+            blob: this.capturedImage.blob,
             width: this.capturedImage.width,
             height: this.capturedImage.height,
         };
@@ -390,6 +409,7 @@ prototype.clear = function() {
     } else {
         this.status = undefined;
     }
+    this.duration = undefined;
     this.notifyChange();
 };
 
@@ -412,6 +432,8 @@ prototype.notifyChange = function() {
         this.waitReject = null;
         resolve();
     }
+    var evt = new RelaksMediaCaptureEvent('change', this);
+    this.triggerEvent(evt);
 };
 
 prototype.handleDeviceChange = function(evt) {
@@ -468,7 +490,7 @@ prototype.handleStreamEnd = function(evt) {
             if (evt.target === tracks[i]) {
                 if (this.status === 'previewing') {
                     this.reacquire();
-                } else if (this.status === 'recording' || this.status === 'paused') {
+                } else if (this.status === 'capturing' || this.status === 'paused') {
                     this.releaseInput();
                     this.stop();
                 }
@@ -497,19 +519,23 @@ prototype.handleAudioProcess = function(evt) {
 
 prototype.handleMediaRecorderData = function(evt) {
     this.mediaRecorderBlobs.push(evt.data);
+    if (this.options.segmentDuration) {
+        var evt = new RelaksMediaCaptureEvent('chunk', this, { blob: evt.data });
+        this.triggerEvent(evt);
+    }
 };
 
 prototype.handleMediaRecorderStart = function(evt) {
     this.mediaRecorderInterval = setInterval(this.handleMediaRecorderInterval, 100);
     this.mediaRecorderStartTime = new Date;
-    this.status = 'recording';
+    this.status = 'capturing';
     this.notifyChange();
 };
 
 prototype.handleMediaRecorderStop = function(evt) {
     clearInterval(this.mediaRecorderInterval);
-
-    let blobs = this.mediaRecorderBlobs;
+    var _this = this;
+    var blobs = this.mediaRecorderBlobs;
     if (blobs.length > 0) {
         var blob;
         if (blobs.length === 1) {
@@ -540,7 +566,7 @@ prototype.handleMediaRecorderStop = function(evt) {
             var elapsed = now - this.mediaRecorderStartTime;
             this.duration = this.mediaRecorderDuration + elapsed;
         }
-        this.status = 'recorded';
+        this.status = 'captured';
     } else {
         this.duration = undefined;
         this.status = 'previewing';
@@ -551,6 +577,10 @@ prototype.handleMediaRecorderStop = function(evt) {
     this.mediaRecorderStartTime = null;
     this.mediaRecorderDuration = 0;
     this.notifyChange();
+    if (this.options.segmentDuration) {
+        var evt = new RelaksMediaCaptureEvent('end', this);
+        this.triggerEvent(evt);
+    }
 };
 
 prototype.handleMediaRecorderPause = function(evt) {
@@ -582,64 +612,71 @@ function getMediaStream(constraints) {
     }
 }
 
-function getMediaStreamMeta(stream) {
+function getVideoStreamMeta(stream) {
     return new Promise(function(resolve, reject) {
-        var video = document.createElement('VIDEO');
-        video.srcObject = stream;
-        video.muted = true;
+        var el = document.createElement('VIDEO');
+        el.srcObject = stream;
+        el.muted = true;
         // dimensions aren't always available when loadedmetadata fires
         // listening for additional event just in case
-        video.onloadedmetadata =
-        video.onloadeddata =
-        video.oncanplay = function(evt) {
-            var target = evt.target;
-            var w = target.videoWidth;
-            var h = target.videoHeight;
-            if (resolve && w && h) {
-                resolve({ width: w, height: h });
-                target.pause();
-                target.srcObject = null;
-                resolve = null;
+        el.onloadedmetadata =
+        el.onloadeddata =
+        el.oncanplay = function(evt) {
+            if (resolve) {
+                var meta;
+                if (el.tagName === 'VIDEO') {
+                    var w = el.videoWidth;
+                    var h = el.videoHeight;
+                    if (w && h) {
+                        meta = { width: w, height: h };
+                    }
+                } else {
+                    meta = {};
+                }
+                if (meta) {
+                    resolve(meta);
+                    resolve = null;
+                    el.pause();
+                    el.srcObject = null;
+                }
             }
         };
-        video.onerror = function(evt) {
+        el.onerror = function(evt) {
             var err = new RelaksMediaCaptureError('Unable to obtain metadata');
             reject(err);
-            video.pause();
+            el.pause();
         };
-        video.play();
+        el.play();
     });
 }
 
-function getMediaStreamSnapshot(stream) {
+function getVideoStreamSnapshot(stream) {
     return new Promise(function(resolve, reject) {
-        var video = document.createElement('VIDEO');
-        video.srcObject = stream;
-        video.muted = true;
-        // dimensions aren't always available when loadedmetadata fires
-        // listening for additional event just in case
-        video.oncanplay = function(evt) {
+        var el = document.createElement('VIDEO');
+        el.srcObject = stream;
+        el.muted = true;
+        el.oncanplay = function(evt) {
             if (resolve) {
-                var target = evt.target;
-                var w = target.videoWidth;
-                var h = target.videoHeight;
+                var w = el.videoWidth;
+                var h = el.videoHeight;
                 var canvas = document.createElement('CANVAS');
                 canvas.width = w;
                 canvas.height = h;
                 var context = canvas.getContext('2d');
-                context.drawImage(video, 0, 0, w, h);
+                context.drawImage(el, 0, 0, w, h);
                 resolve(canvas);
-                target.pause();
-                target.srcObject = null;
                 resolve = null;
+                el.pause();
+                el.srcObject = null;
             }
         };
-        video.onerror = function(evt) {
+        el.onerror = function(evt) {
             var err = new RelaksMediaCaptureError('Unable to capture image');
             reject(err);
-            video.pause();
+            el.pause();
+            el.srcObject = null;
         };
-        video.play();
+        el.play();
     });
 }
 
@@ -755,17 +792,25 @@ function saveCanvasContents(canvas, mimeType, quality) {
         if (typeof(canvas.toBlob) === 'function') {
             canvas.toBlob(resolve, mimeType, 90);
         } else {
-            var dataURL = canvas.toDataURL(mimeType, quality);
-            var xhr = new XMLHttpRequest();
-            xhr.responseType = 'blob';
-            xhr.open('GET', url);
-            xhr.onload = function(evt) {
-                if (xhr.status >= 400) {
-                    reject(new Error('Error parsing data URL'));
-                } else {
-                    resolve(xhr.response);
-                }
-            };
+            try {
+                var dataURL = canvas.toDataURL(mimeType, quality);
+                var xhr = new XMLHttpRequest;
+                xhr.responseType = 'blob';
+                xhr.onload = function(evt) {
+                    if (xhr.status >= 400) {
+                        reject(new RelaksMediaCaptureError('Error parsing data URL'));
+                    } else {
+                        resolve(xhr.response);
+                    }
+                };
+                xhr.onerror = function() {
+                    reject(new RelaksMediaCaptureError('Unable to load image'));
+                };
+                xhr.open('GET', dataURL, true);
+                xhr.send();
+            } catch (err) {
+                reject(err);
+            }
         }
     });
 }

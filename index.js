@@ -40,6 +40,7 @@ function RelaksMediaCapture(options) {
     this.waitReject = null;
     this.waitResolve = null;
     this.waitTimeout = 0;
+    this.orientationChanged = false;
 
     this.handleDeviceChange = this.handleDeviceChange.bind(this);
     this.handleStreamEnd = this.handleStreamEnd.bind(this);
@@ -50,6 +51,8 @@ function RelaksMediaCapture(options) {
     this.handleMediaRecorderPause = this.handleMediaRecorderPause.bind(this);
     this.handleMediaRecorderResume = this.handleMediaRecorderResume.bind(this);
     this.handleMediaRecorderInterval = this.handleMediaRecorderInterval.bind(this);
+    this.handleOrientationChange = this.handleOrientationChange.bind(this);
+    this.handleResize = this.handleResize.bind(this);
 
     for (var name in defaultOptions) {
         if (options && options[name] !== undefined) {
@@ -277,6 +280,8 @@ prototype.watchDevices = function() {
     if (mediaDevices && mediaDevices.addEventListener) {
         mediaDevices.addEventListener('devicechange', this.handleDeviceChange);
     }
+    window.addEventListener('orientationchange', this.handleOrientationChange);
+    window.addEventListener('resize', this.handleResize);
 }
 
 prototype.unwatchDevices = function() {
@@ -284,6 +289,8 @@ prototype.unwatchDevices = function() {
     if (mediaDevices && mediaDevices.removeEventListener) {
         mediaDevices.removeEventListener('devicechange', this.handleDeviceChange);
     }
+    window.removeEventListener('orientationchange', this.handleOrientationChange);
+    window.removeEventListener('resize', this.handleResize);
 }
 
 /**
@@ -296,6 +303,9 @@ prototype.watchStreamStatus = function() {
     }
 };
 
+/**
+ * Remove event handlers from the input stream
+ */
 prototype.unwatchStreamStatus = function () {
     var tracks = this.stream.getTracks();
     for (var i = 0; i < tracks.length; i++) {
@@ -317,6 +327,9 @@ prototype.watchAudioVolume = function() {
     }
 };
 
+/**
+ * Destroy audio processor used to monitor volume
+ */
 prototype.unwatchAudioVolume = function() {
     if (this.audioContext) {
         this.audioProcessor.disconnect(this.audioContext.destination);
@@ -390,6 +403,11 @@ prototype.extract = function() {
     return media;
 };
 
+/**
+ * Obtain an input device again
+ *
+ * @return {Promise}
+ */
 prototype.reacquire = function() {
     this.status = 'initiating';
     this.releaseInput();
@@ -397,11 +415,22 @@ prototype.reacquire = function() {
     return this.acquire();
 };
 
+/**
+ * Select a new input device
+ *
+ * @return {Promise}
+ */
 prototype.choose = function(deviceID) {
+    if (this.selectedDeviceID === deviceID) {
+        return Promise.resolve();
+    }
     this.selectedDeviceID = deviceID;
     return this.reacquire();
 };
 
+/**
+ * Clear what has been captured
+ */
 prototype.clear = function() {
     this.revokeBlobs();
     if (this.liveVideo) {
@@ -413,6 +442,11 @@ prototype.clear = function() {
     this.notifyChange();
 };
 
+/**
+ * Wait for change to occur
+ *
+ * @return {Promise}
+ */
 prototype.change = function() {
     var _this = this;
     if (!this.waitPromise) {
@@ -424,6 +458,9 @@ prototype.change = function() {
     return this.waitPromise;
 };
 
+/**
+ * Fulfill promise returned by change() and emit a change event
+ */
 prototype.notifyChange = function() {
     var resolve = this.waitResolve;
     if (resolve) {
@@ -436,6 +473,11 @@ prototype.notifyChange = function() {
     this.triggerEvent(evt);
 };
 
+/**
+ * Called when a device is plugged in or unplugged
+ *
+ * @param  {Event} evt
+ */
 prototype.handleDeviceChange = function(evt) {
     if (this.scanningDevices) {
         return;
@@ -483,6 +525,11 @@ prototype.handleDeviceChange = function(evt) {
     });
 };
 
+/**
+ * Called when the media stream ends unexpectedly (e.g. unplugging a USB camera)
+ *
+ * @param  {Event} evt
+ */
 prototype.handleStreamEnd = function(evt) {
     if (this.stream) {
         var tracks = this.stream.getTracks();
@@ -500,6 +547,11 @@ prototype.handleStreamEnd = function(evt) {
     }
 };
 
+/**
+ * Called when the audio processor has data to be processed
+ *
+ * @param  {Event} evt
+ */
 prototype.handleAudioProcess = function(evt) {
     var samples = evt.inputBuffer.getChannelData(0);
     var max = 0;
@@ -517,6 +569,11 @@ prototype.handleAudioProcess = function(evt) {
     }
 };
 
+/**
+ * Called when the media recorder has finished encoding some video/audio
+ *
+ * @param  {Event} evt
+ */
 prototype.handleMediaRecorderData = function(evt) {
     this.mediaRecorderBlobs.push(evt.data);
     if (this.options.segmentDuration) {
@@ -525,6 +582,11 @@ prototype.handleMediaRecorderData = function(evt) {
     }
 };
 
+/**
+ * Called when the media recorder starts
+ *
+ * @param  {Event} evt
+ */
 prototype.handleMediaRecorderStart = function(evt) {
     this.mediaRecorderInterval = setInterval(this.handleMediaRecorderInterval, 100);
     this.mediaRecorderStartTime = new Date;
@@ -532,6 +594,11 @@ prototype.handleMediaRecorderStart = function(evt) {
     this.notifyChange();
 };
 
+/**
+ * Called when the media recorder stops
+ *
+ * @param  {Event} evt
+ */
 prototype.handleMediaRecorderStop = function(evt) {
     clearInterval(this.mediaRecorderInterval);
     var _this = this;
@@ -583,6 +650,11 @@ prototype.handleMediaRecorderStop = function(evt) {
     }
 };
 
+/**
+ * Called when the media recorder pauses
+ *
+ * @param  {Event} evt
+ */
 prototype.handleMediaRecorderPause = function(evt) {
     clearInterval(this.mediaRecorderInterval);
 
@@ -597,6 +669,40 @@ prototype.handleMediaRecorderPause = function(evt) {
 
 prototype.handleMediaRecorderResume = prototype.handleMediaRecorderStart;
 
+/**
+ * Called when the viewing device's orientation has changed
+ *
+ * @param  {Event} evt
+ */
+prototype.handleOrientationChange = function(evt) {
+    // recalculate the video width and height when we receive the resize event
+    // so that dimensions from the DOM would reflect the new orientation
+    this.orientationChanged = true;
+};
+
+/**
+ * Called when the HTML document has been resized
+ *
+ * @param  {Event} evt
+ */
+prototype.handleResize = function(evt) {
+    if (this.orientationChanged) {
+        this.orientationChanged = false;
+
+        var _this = this;
+        var video = this.liveVideo;
+        if (video) {
+            getVideoStreamMeta(this.stream).then(function(meta) {
+                if (video.width !== meta.width || video.height !== meta.height) {
+                    video.width = meta.width;
+                    video.height = meta.height;
+                    _this.notifyChange();
+                }
+            });
+        }
+    }
+};
+
 prototype.handleMediaRecorderInterval = function() {
     var now = new Date;
     var elapsed = now - this.mediaRecorderStartTime;
@@ -604,6 +710,13 @@ prototype.handleMediaRecorderInterval = function() {
     this.notifyChange();
 };
 
+/**
+ * Ask the browser for a media stream that
+ *
+ * @param  {Object} constraints
+ *
+ * @return {Promise<MediaStream>}
+ */
 function getMediaStream(constraints) {
     try {
         return navigator.mediaDevices.getUserMedia(constraints);
@@ -612,6 +725,13 @@ function getMediaStream(constraints) {
     }
 }
 
+/**
+ * Obtain the dimension of a video stream
+ *
+ * @param  {MediaStream} stream
+ *
+ * @return {Promise<Object>}
+ */
 function getVideoStreamMeta(stream) {
     return new Promise(function(resolve, reject) {
         var el = document.createElement('VIDEO');
@@ -650,6 +770,13 @@ function getVideoStreamMeta(stream) {
     });
 }
 
+/**
+ * Obtain a snapshot of a video stream
+ *
+ * @param  {MediaStream} stream
+ *
+ * @return {Promise<HTMLCanvasElement>}
+ */
 function getVideoStreamSnapshot(stream) {
     return new Promise(function(resolve, reject) {
         var el = document.createElement('VIDEO');
@@ -757,6 +884,14 @@ function enumerateDevices(kind) {
     }
 }
 
+/**
+ * Choose a device from the given list, based on id or description
+ *
+ * @param  {Array<Object>} devices
+ * @param  {String} preferred
+ *
+ * @return {String}
+ */
 function chooseDevice(devices, preferred) {
     if (preferred) {
         for (var i = 0; i < devices.length; i++) {

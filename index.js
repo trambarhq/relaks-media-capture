@@ -41,6 +41,7 @@ function RelaksMediaCapture(options) {
     this.waitResolve = null;
     this.waitTimeout = 0;
     this.orientationChanged = false;
+    this.videoDimensions = null;
 
     this.handleDeviceChange = this.handleDeviceChange.bind(this);
     this.handleStreamEnd = this.handleStreamEnd.bind(this);
@@ -84,7 +85,7 @@ prototype.activate = function() {
 
 /**
  * End the capturing process, release the recording device and free
- * captured resources if extract() wasn't called
+ *
  */
 prototype.deactivate = function() {
     if (this.active) {
@@ -106,7 +107,7 @@ prototype.deactivate = function() {
         var _this = this;
         setTimeout(function() {
             _this.releaseInput();
-            _this.revokeBlobs();
+            _this.revokeBlobURLs();
         }, this.options.deactivationDelay);
         this.unwatchDevices();
         this.active = false;
@@ -202,6 +203,12 @@ prototype.start = function() {
     if (this.options.video) {
         options.videoBitsPerSecond = this.options.videoBitsPerSecond,
         options.mimeType = this.options.videoMIMEType;
+    }
+    if (this.liveVideo) {
+        this.videoDimensions = {
+            width: this.liveVideo.width,
+            height: this.liveVideo.height,
+        };
     }
     this.mediaRecorder = new MediaRecorder(this.stream, options);
     this.mediaRecorder.addEventListener('dataavailable', this.handleMediaRecorderData);
@@ -346,18 +353,20 @@ prototype.unwatchAudioVolume = function() {
  * Release recording device
  */
 prototype.releaseInput = function() {
-    this.unwatchAudioVolume();
-    this.unwatchStreamStatus();
-    stopMediaStream(this.stream);
-    this.stream = undefined;
-    this.liveVideo = undefined;
-    this.liveAudio = undefined;
+    if (this.stream) {
+        this.unwatchAudioVolume();
+        this.unwatchStreamStatus();
+        stopMediaStream(this.stream);
+        this.stream = undefined;
+        this.liveVideo = undefined;
+        this.liveAudio = undefined;
+    }
 };
 
 /**
  * Revoke the blob URL of captured media and set them to undefined
  */
-prototype.revokeBlobs = function() {
+prototype.revokeBlobURLs = function() {
     if (this.capturedVideo) {
         URL.revokeObjectURL(this.capturedVideo.url);
         this.capturedVideo = undefined;
@@ -370,37 +379,6 @@ prototype.revokeBlobs = function() {
         URL.revokeObjectURL(this.capturedImage.url);
         this.capturedImage = undefined;
     }
-};
-
-/**
- * Add captured media to the list of object, sans blob URLs
- *
- * @return {Object}
- */
-prototype.extract = function() {
-    var media = {};
-    if (this.capturedVideo) {
-        media.video = {
-            blob: this.capturedVideo.blob,
-            width: this.capturedVideo.width,
-            height: this.capturedVideo.height,
-            duration: this.capturedVideo.duration,
-        };
-    }
-    if (this.capturedAudio) {
-        media.audio = {
-            blob: this.capturedAudio.blob,
-            duration: this.capturedAudio.duration,
-        };
-    }
-    if (this.capturedImage) {
-        media.image = {
-            blob: this.capturedImage.blob,
-            width: this.capturedImage.width,
-            height: this.capturedImage.height,
-        };
-    }
-    return media;
 };
 
 /**
@@ -421,7 +399,7 @@ prototype.reacquire = function() {
  * @return {Promise}
  */
 prototype.choose = function(deviceID) {
-    if (this.selectedDeviceID === deviceID) {
+    if (this.selectedDeviceID === deviceID && this.stream) {
         return Promise.resolve();
     }
     this.selectedDeviceID = deviceID;
@@ -432,11 +410,12 @@ prototype.choose = function(deviceID) {
  * Clear what has been captured
  */
 prototype.clear = function() {
-    this.revokeBlobs();
-    if (this.liveVideo) {
+    this.revokeBlobURLs();
+    if (this.liveVideo || this.liveAudio) {
         this.status = 'previewing';
     } else {
         this.status = undefined;
+        this.acquire();
     }
     this.duration = undefined;
     this.notifyChange();
@@ -493,7 +472,7 @@ prototype.handleDeviceChange = function(evt) {
     getDevices(constraints).then(function(devices) {
         var newDevice = null;
         var useNewDevice = false;
-        if (_this.status === 'initiating' || _this.status === 'previewing') {
+        if (_this.status === 'initiating' || _this.status === 'previewing' || _this.status === 'denied') {
             useNewDevice = _this.options.chooseNewDevice;
         }
         if (useNewDevice) {
@@ -611,16 +590,16 @@ prototype.handleMediaRecorderStop = function(evt) {
             blob = new Blob(blobs, { type: blobs[0].type });
         }
         var url = URL.createObjectURL(blob);
-        if (this.liveVideo) {
+        if (this.videoDimensions) {
             this.capturedVideo = {
                 url: url,
                 blob: blob,
                 blobs: blobs,
                 duration: this.duration,
-                width: this.liveVideo.width,
-                height: this.liveVideo.height,
+                width: this.videoDimensions.width,
+                height: this.videoDimensions.height,
             };
-        } else if (this.liveAudio) {
+        } else {
             this.capturedAudio = {
                 url: url,
                 blob: blob,
@@ -694,8 +673,11 @@ prototype.handleResize = function(evt) {
         if (video) {
             getVideoStreamMeta(this.stream).then(function(meta) {
                 if (video.width !== meta.width || video.height !== meta.height) {
-                    video.width = meta.width;
-                    video.height = meta.height;
+                    _this.liveVideo = {
+                        stream: video.stream,
+                        width: meta.width,
+                        height: meta.height,
+                    };
                     _this.notifyChange();
                 }
             });

@@ -36,10 +36,6 @@ function RelaksMediaCapture(options) {
     this.mediaRecorderDuration = 0
     this.mediaRecorderInterval = 0;
     this.mediaRecorderBlobs = [];
-    this.waitPromise = null;
-    this.waitReject = null;
-    this.waitResolve = null;
-    this.waitTimeout = 0;
     this.orientationChanged = false;
     this.videoDimensions = null;
 
@@ -424,32 +420,17 @@ prototype.clear = function() {
 /**
  * Wait for change to occur
  *
- * @return {Promise}
+ * @return {Promise<Event>}
  */
 prototype.change = function() {
-    var _this = this;
-    if (!this.waitPromise) {
-        this.waitPromise = new Promise(function(resolve, reject) {
-            _this.waitResolve = resolve;
-            _this.waitReject = reject;
-        });
-    }
-    return this.waitPromise;
+    return this.waitForEvent('change');
 };
 
 /**
  * Fulfill promise returned by change() and emit a change event
  */
 prototype.notifyChange = function() {
-    var resolve = this.waitResolve;
-    if (resolve) {
-        this.waitPromise = null;
-        this.waitResolve = null;
-        this.waitReject = null;
-        resolve();
-    }
-    var evt = new RelaksMediaCaptureEvent('change', this);
-    this.triggerEvent(evt);
+    this.triggerEvent(new RelaksMediaCaptureEvent('change', this));
 };
 
 /**

@@ -21,6 +21,8 @@ function RelaksMediaCapture(options) {
     EventEmitter.call(this);
     this.options = {};
     this.status = undefined;
+    this.duration = undefined;
+    this.volume = undefined;
     this.liveVideo = undefined;
     this.liveAudio = undefined;
     this.lastError = null;

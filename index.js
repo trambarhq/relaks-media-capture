@@ -185,95 +185,108 @@ prototype.acquire = function() {
  * Start capturing video/audio
  */
 prototype.start = function() {
-    if (!this.stream) {
-        throw new RelaksMediaCaptureError('No media stream');
+    try {
+        if (this.mediaRecorder) {
+            return;
+        }
+        var segmentDuration = this.options.segmentDuration;
+        var options = {};
+        if (this.options.audio) {
+            options.audioBitsPerSecond = this.options.audioBitsPerSecond;
+            options.mimeType = this.options.audioMIMEType;
+        }
+        if (this.options.video) {
+            options.videoBitsPerSecond = this.options.videoBitsPerSecond,
+            options.mimeType = this.options.videoMIMEType;
+        }
+        if (this.liveVideo) {
+            this.videoDimensions = {
+                width: this.liveVideo.width,
+                height: this.liveVideo.height,
+            };
+        }
+        this.mediaRecorder = new MediaRecorder(this.stream, options);
+        this.mediaRecorder.addEventListener('dataavailable', this.handleMediaRecorderData);
+        this.mediaRecorder.addEventListener('start', this.handleMediaRecorderStart);
+        this.mediaRecorder.addEventListener('stop', this.handleMediaRecorderStop);
+        this.mediaRecorder.addEventListener('pause', this.handleMediaRecorderPause);
+        this.mediaRecorder.addEventListener('resume', this.handleMediaRecorderResume);
+        this.mediaRecorder.start(segmentDuration);
+    } catch (err) {
+        this.lastError = err;
+        console.error(err);
     }
-    if (this.mediaRecorder) {
-        return;
-    }
-    var segmentDuration = this.options.segmentDuration;
-    var options = {};
-    if (this.options.audio) {
-        options.audioBitsPerSecond = this.options.audioBitsPerSecond;
-        options.mimeType = this.options.audioMIMEType;
-    }
-    if (this.options.video) {
-        options.videoBitsPerSecond = this.options.videoBitsPerSecond,
-        options.mimeType = this.options.videoMIMEType;
-    }
-    if (this.liveVideo) {
-        this.videoDimensions = {
-            width: this.liveVideo.width,
-            height: this.liveVideo.height,
-        };
-    }
-    this.mediaRecorder = new MediaRecorder(this.stream, options);
-    this.mediaRecorder.addEventListener('dataavailable', this.handleMediaRecorderData);
-    this.mediaRecorder.addEventListener('start', this.handleMediaRecorderStart);
-    this.mediaRecorder.addEventListener('stop', this.handleMediaRecorderStop);
-    this.mediaRecorder.addEventListener('pause', this.handleMediaRecorderPause);
-    this.mediaRecorder.addEventListener('resume', this.handleMediaRecorderResume);
-    this.mediaRecorder.start(segmentDuration);
 };
 
 /**
  * Stop capturing video/audio
  */
 prototype.stop = function() {
-    if (!this.mediaRecorder) {
-        throw new RelaksMediaCaptureError('No media recorder');
+    try {
+        this.mediaRecorder.stop();
+    } catch (err) {
+        this.lastError = err;
+        console.error(err);
     }
-    this.mediaRecorder.stop();
 };
 
 /**
  * Pause recording
  */
 prototype.pause = function() {
-    if (!this.mediaRecorder) {
-        throw new RelaksMediaCaptureError('No media recorder');
+    try {
+        this.mediaRecorder.pause();
+    } catch (err) {
+        this.lastError = err;
+        console.error(err);
     }
-    this.mediaRecorder.pause();
 };
 
 /**
  * Resume recording
  */
 prototype.resume = function() {
-    if (!this.mediaRecorder) {
-        throw new RelaksMediaCaptureError('No media recorder');
+    try {
+        this.mediaRecorder.resume();
+    } catch (err) {
+        this.lastError = err;
+        console.error(err);
     }
-    this.mediaRecorder.resume();
 };
 
 /**
  * Capture a snapshot of the video input
  */
 prototype.snap = function() {
-    var _this = this;
-    var mimeType = this.options.imageMIMEType;
-    var quality = this.options.imageQuality || 90;
-    var imageOnly = this.options.captureImageOnly;
-    if (!this.liveVideo) {
-        throw new RelaksMediaCaptureError('No video stream');
-    }
-    getVideoStreamSnapshot(this.stream).then(function(canvas) {
-        saveCanvasContents(canvas, mimeType, quality).then(function(blob) {
-            var url = URL.createObjectURL(blob);
-            _this.capturedImage = {
-                url: url,
-                blob: blob,
-                width: canvas.width,
-                height: canvas.height,
-            };
-            if (imageOnly) {
-                _this.status = 'captured';
-            }
-            _this.notifyChange();
-        }).catch(function(err) {
-            console.error(err);
+    try {
+        var _this = this;
+        var mimeType = this.options.imageMIMEType;
+        var quality = this.options.imageQuality || 90;
+        var imageOnly = this.options.captureImageOnly;
+        if (!this.liveVideo) {
+            throw new RelaksMediaCaptureError('No video stream');
+        }
+        getVideoStreamSnapshot(this.stream).then(function(canvas) {
+            saveCanvasContents(canvas, mimeType, quality).then(function(blob) {
+                var url = URL.createObjectURL(blob);
+                _this.capturedImage = {
+                    url: url,
+                    blob: blob,
+                    width: canvas.width,
+                    height: canvas.height,
+                };
+                if (imageOnly) {
+                    _this.status = 'captured';
+                }
+                _this.notifyChange();
+            }).catch(function(err) {
+                console.error(err);
+            });
         });
-    });
+    } catch (err) {
+        this.lastError = err;
+        console.error(err);
+    }
 };
 
 /**
@@ -396,11 +409,17 @@ prototype.reacquire = function() {
  * @return {Promise}
  */
 prototype.choose = function(deviceID) {
-    if (this.selectedDeviceID === deviceID && this.stream) {
-        return Promise.resolve();
+    try {
+        if (this.selectedDeviceID === deviceID && this.stream) {
+            return Promise.resolve();
+        }
+        this.selectedDeviceID = deviceID;
+        return this.reacquire();
+    } catch (err) {
+        this.lastError = err;
+        console.error(err);
+        return Promise.reject(err);
     }
-    this.selectedDeviceID = deviceID;
-    return this.reacquire();
 };
 
 /**
@@ -526,9 +545,6 @@ prototype.handleAudioProcess = function(evt) {
         }
     }
     var volume = Math.round(max * 100);
-    if (volume < 5) {
-        volume = 0;
-    }
     if (volume !== this.volume) {
         this.volume = volume;
         this.notifyChange();

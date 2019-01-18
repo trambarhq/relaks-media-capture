@@ -95,7 +95,7 @@ Default value: `128000`
 
 The desired audio type. Due to licensing cost, it's unlikely that anything other than the open source [WebM](https://www.webmproject.org/) would be available.
 
-Default value: `audio/webm`
+Default value: `"audio/webm"`
 
 ### captureImageOnly
 
@@ -113,13 +113,13 @@ Default value: `true`
 
 The desired audio type.
 
-Default value: `image/jpeg`
+Default value: `"image/jpeg"`
 
 ### preferredDevice
 
 A text string indicating the preferred input device. If the device label contains the text, it'll be selected.
 
-Default value: `front`
+Default value: `"front"`
 
 ### segmentDuration
 
@@ -145,7 +145,7 @@ Default value: `2500000`
 
 The desired video type. Due to licensing cost, it's unlikely that anything other than the open source [WebM](https://www.webmproject.org/) would be available.
 
-Default value: `video/webm`
+Default value: `"video/webm"`
 
 ### watchVolume
 
@@ -176,10 +176,10 @@ A boolean indicating whether the media capture object is active.
 
 An object holding properties of the captured image, with the following properties:
 
-* `blob` - Blob containing the image data
-* `url` - A URL to the blob
+* `blob` - blob containing the image data
+* `url` - URL to the blob
 * `width` - Width of the image
-* `height` - Height of the image
+* `height` - height of the image
 
 The URL will be revoked when `deactivate()` is called. It should only be used while the media capture object is active.
 
@@ -187,17 +187,17 @@ The URL will be revoked when `deactivate()` is called. It should only be used wh
 
 An object holding properties of the captured audio, with the following properties:
 
-* `blob` - Blob containing the audio data
-* `url` - A URL to the blob
+* `blob` - blob containing the audio data
+* `url` - URL to the blob
 
 The URL will be revoked when `deactivate()` is called. It should only be used while the media capture object is active.
 
 ### capturedVideo
 
-* `blob` - Blob containing the video data
-* `url` - A URL to the blob
-* `width` - Width of the image
-* `height` - Height of the image
+* `blob` - blob containing the video data
+* `url` - URL to the blob
+* `width` - width of the image
+* `height` - height of the image
 
 The URL will be revoked when `deactivate()` is called. It should only be used while the media capture object is active.
 
@@ -213,17 +213,17 @@ The last error encountered.
 
 An object representing the input from the microphone, with the following properties:
 
-* `stream` - An instance of `MediaStream`
+* `stream` - an instance of `MediaStream`
 
 It's only available when [`audio`](#audio) is `true` and [`video`](#video) is `false`.
 
 ### liveVideo
 
-An object representing the input from the camera, with the following properties
+An object representing the input from the camera, with the following properties:
 
-* `stream` - An instance of `MediaStream`
-* `height` - The height of the video
-* `width` - The width of the video
+* `stream` - an instance of `MediaStream`
+* `height` - the height of the video
+* `width` - the width of the video
 
 It's available when [`video`](#video) is `true`.
 
@@ -233,8 +233,8 @@ It's available when [`video`](#video) is `true`.
 
 An array containing objects describing available input devices, each with the following properties:
 
-* `id` - The device's ID (a string)
-* `label` - The device's name
+* `id` - the device's ID (a string)
+* `label` - the device's name
 
 ### selectedDeviceID
 
@@ -244,13 +244,13 @@ ID of the currently selected camera.
 
 One of the following:
 
-* "acquiring" - In the process of acquiring a camera
-* "denied" - Permission to use camera has been denied
-* "initiating" - Permission has been granted and the camera is about to become available
-* "previewing" - Camera input is available
-* "capturing" - Video/audio capturing is happening
+* "acquiring" - in the process of acquiring a camera
+* "denied" - permission to use camera was denied
+* "initiating" - permission has been granted and the camera is about to become available
+* "previewing" - camera input is available
+* "capturing" - video/audio capturing is happening
 * "paused" - Video/audio capturing has been paused
-* "captured" - A video, audio, or image has been captured
+* "captured" - a video, audio, or image has been captured
 
 ### volume
 
@@ -387,7 +387,7 @@ Wait for a [`change`](#change-1) event to occur.
 ### choose()
 
 ```typescript
-function choose(id: String): void
+async function choose(id: String): void
 ```
 
 Choose the camera or mic with the specified ID as the recording device.
@@ -420,9 +420,9 @@ The `change` event is emitted after a property of media capture object has chang
 
 * `stopImmediatePropagation()` - stop other listeners from receiving the event
 
-## chunk
+### chunk
 
-When [segmentDuration](#segmentduration) is set, the `chunk` event is emitted when a chunk of data become available.
+The `chunk` event is emitted when a chunk of data become available. Only occurs when [segmentDuration](#segmentduration) is set.
 
 **Properties:**
 
@@ -435,9 +435,9 @@ When [segmentDuration](#segmentduration) is set, the `chunk` event is emitted wh
 
 * `stopImmediatePropagation()` - stop other listeners from receiving the event
 
-## end
+### end
 
-When [segmentDuration](#segmentduration) is set, the `end` event is emitted when video recording has come to an end, after the final `chunk` event has occurred.
+The `end` event is emitted when video recording has come to an end, after the final `chunk` event. Only occurs when [segmentDuration](#segmentduration) is set.
 
 **Properties:**
 

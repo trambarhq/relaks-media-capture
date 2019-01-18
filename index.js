@@ -8,7 +8,6 @@ var defaultOptions = {
     chooseNewDevice: true,
     captureImageOnly: false,
     watchVolume: false,
-    deactivationDelay: 0,
     segmentDuration: undefined,
     videoMIMEType: 'video/webm',
     audioMIMEType: 'audio/webm',
@@ -25,6 +24,9 @@ function RelaksMediaCapture(options) {
     this.volume = undefined;
     this.liveVideo = undefined;
     this.liveAudio = undefined;
+    this.capturedVideo = undefined;
+    this.capturedAudio = undefined;
+    this.capturedImage = undefined;
     this.lastError = null;
     this.devices = [];
     this.selectedDeviceID = undefined;
@@ -102,11 +104,8 @@ prototype.deactivate = function() {
             this.mediaRecorderBlobs = [];
         }
 
-        var _this = this;
-        setTimeout(function() {
-            _this.releaseInput();
-            _this.revokeBlobURLs();
-        }, this.options.deactivationDelay);
+        this.releaseInput();
+        this.revokeBlobURLs();
         this.unwatchDevices();
         this.active = false;
         this.notifyChange();
@@ -172,13 +171,13 @@ prototype.acquire = function() {
                 _this.status = 'previewing';
                 _this.notifyChange();
             }
-        }).catch(function(err) {
-            _this.lastError = err;
-            _this.status = 'denied';
-            _this.notifyChange();
-            console.error(err);
-            return null;
         });
+    }).catch(function(err) {
+        _this.lastError = err;
+        _this.status = 'denied';
+        _this.notifyChange();
+        console.error(err);
+        return null;
     });
 };
 
@@ -413,7 +412,9 @@ prototype.clear = function() {
         this.status = 'previewing';
     } else {
         this.status = undefined;
-        this.acquire();
+        if (this.active) {
+            this.acquire();
+        }
     }
     this.duration = undefined;
     this.notifyChange();
@@ -525,6 +526,9 @@ prototype.handleAudioProcess = function(evt) {
         }
     }
     var volume = Math.round(max * 100);
+    if (volume < 5) {
+        volume = 0;
+    }
     if (volume !== this.volume) {
         this.volume = volume;
         this.notifyChange();

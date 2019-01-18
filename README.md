@@ -1,6 +1,8 @@
 Relaks Media Capture
 ====================
 
+A reusable library for capturing video, audio, and images in a web browser. Designed to be used with [Relaks](https://github.com/trambarhq/relaks).
+
 * [Installation](#installation)
 * [Usage](#usage)
 * [Options](#options)
@@ -79,33 +81,84 @@ class VideoDialogBox extends AsyncComponent {
 
 ### audio
 
+A boolean indicating whether audio is desired.
+
+Default value: `true`.
+
 ### audioBitsPerSecond
+
+The desired audio bitrate.
+
+Default value: `128000`
 
 ### audioMIMEType
 
+The desired audio type. Due to licensing cost, it's unlikely that anything other than the open source [WebM](https://www.webmproject.org/) would be available.
+
+Default value: `audio/webm`
+
 ### captureImageOnly
+
+Whether the desired result is an image rather than a video. When it's set, calling [`snap()`](#snap) will change the status to `"captured"`.
+
+Default value: `false`
 
 ### chooseNewDevice
 
-### deactivationDelay
+Whether a new device should be automatically chosen as the input.
+
+Default value: `true`
 
 ### imageMIMEType
 
+The desired audio type.
+
+Default value: `image/jpeg`
+
 ### preferredDevice
+
+A text string indicating the preferred input device. If the device label contains the text, it'll be selected.
+
+Default value: `front`
 
 ### segmentDuration
 
+Duration of a video segment, in millisecond, that the `MediaRecorder` should yield as soon as that amount of data becomes available. This allows a video to be uploaded in chunks as it's being recorded.
+
+When it's set, the media capture object will emit the [`chunk`](#chunk) event periodically. It'll emit the [`end`](#end) event when capturing ends.
+
+Default value: `undefined`
+
 ### video
+
+A boolean indicating whether video is desired.
+
+Default value: `true`
 
 ### videoBitsPerSecond
 
+The desired video bitrate.
+
+Default value: `2500000`
+
 ### videoMIMEType
 
+The desired video type. Due to licensing cost, it's unlikely that anything other than the open source [WebM](https://www.webmproject.org/) would be available.
+
+Default value: `video/webm`
+
 ### watchVolume
+
+A boolean indicating whether audio volume should be monitored.
+
+Default value: `false`
 
 ## Properties
 
 * [active](#active)
+* [capturedImage](#capturedimage)
+* [capturedAudio](#capturedaudio)
+* [capturedVideo](#capturedvideo)
 * [duration](#duration)
 * [lastError](#error)
 * [liveAudio](#liveaudio)
@@ -119,9 +172,38 @@ class VideoDialogBox extends AsyncComponent {
 
 A boolean indicating whether the media capture object is active.
 
+### capturedImage
+
+An object holding properties of the captured image, with the following properties:
+
+* `blob` - Blob containing the image data
+* `url` - A URL to the blob
+* `width` - Width of the image
+* `height` - Height of the image
+
+The URL will be revoked when `deactivate()` is called. It should only be used while the media capture object is active.
+
+### capturedAudio
+
+An object holding properties of the captured audio, with the following properties:
+
+* `blob` - Blob containing the audio data
+* `url` - A URL to the blob
+
+The URL will be revoked when `deactivate()` is called. It should only be used while the media capture object is active.
+
+### capturedVideo
+
+* `blob` - Blob containing the video data
+* `url` - A URL to the blob
+* `width` - Width of the image
+* `height` - Height of the image
+
+The URL will be revoked when `deactivate()` is called. It should only be used while the media capture object is active.
+
 ### duration
 
-Duration of the captured video/audio. `undefined` initially.
+Duration of the captured video/audio, in millisecond. `undefined` initially.
 
 ### lastError
 
@@ -129,7 +211,7 @@ The last error encountered.
 
 ### liveAudio
 
-An object representing the input from the microphone, with the following properties
+An object representing the input from the microphone, with the following properties:
 
 * `stream` - An instance of `MediaStream`
 
@@ -148,6 +230,11 @@ It's available when [`video`](#video) is `true`.
 `height` and `width` will swap when the user rotates a phone or tablet.
 
 ### devices
+
+An array containing objects describing available input devices, each with the following properties:
+
+* `id` - The device's ID (a string)
+* `label` - The device's name
 
 ### selectedDeviceID
 
@@ -175,9 +262,9 @@ It's present only when [`watchVolume`](#watchvolume) is `true`.
 
 **Event listeners:**
 
-* [addEventListener](#addeventlistener)
-* [removeEventListener](#removeeventlistener)
-* [waitForEvent](#waitforevent)
+* [addEventListener()](#addeventlistener)
+* [removeEventListener()](#removeeventlistener)
+* [waitForEvent()](#waitforevent)
 
 **Activation**
 
@@ -186,22 +273,22 @@ It's present only when [`watchVolume`](#watchvolume) is `true`.
 
 **Video/audio capture:**
 
-* [pause](#pause)
-* [resume](#resume)
-* [start](#start)
-* [stop](#stop)
+* [pause()](#pause)
+* [resume()](#resume)
+* [start()](#start)
+* [stop()](#stop)
 
 **Image capture:**
 
-* [snap](#snap)
+* [snap()](#snap)
 
 **Others:**
 
-* [change](#change)
-* [choose](#choose)
-* [clear](#clear)
+* [change()](#change)
+* [choose()](#choose)
+* [clear()](#clear)
 
-### addEventListener
+### addEventListener()
 
 ```typescript
 function addEventListener(type: string, handler: function, beginning?:boolean): void
@@ -211,7 +298,7 @@ Add an event listener to the route manager. `handler` will be called whenever ev
 
 Inherited from [relaks-event-emitter](https://github.com/trambarhq/relaks-event-emitter).
 
-### removeEventListener
+### removeEventListener()
 
 ```typescript
 function removeEventListener(type: string, handler: function): void
@@ -221,7 +308,7 @@ Remove an event listener from the route manager. `handler` and `type` must match
 
 Inherited from [relaks-event-emitter](https://github.com/trambarhq/relaks-event-emitter).
 
-### waitForEvent
+### waitForEvent()
 
 ```typescript
 async function waitForEvent(type: string): Event
@@ -231,7 +318,7 @@ Return a promise that is fulfilled when an event of the specified type occurs.
 
 Inherited from [relaks-event-emitter](https://github.com/trambarhq/relaks-event-emitter).
 
-### activate
+### activate()
 
 ```typescript
 function activate(): void
@@ -239,7 +326,7 @@ function activate(): void
 
 Activate the media capture object.
 
-### deactivate
+### deactivate()
 
 ```typescript
 function deactivate(): void
@@ -247,7 +334,7 @@ function deactivate(): void
 
 Deactivate the media capture object.
 
-### pause
+### pause()
 
 ```typescript
 function pause(): void
@@ -255,7 +342,7 @@ function pause(): void
 
 Pause capturing. [`status`](#status) will change to `"pause"`.
 
-### resume
+### resume()
 
 ```typescript
 function resume(): void
@@ -263,7 +350,7 @@ function resume(): void
 
 Resume capturing. [`status`](#status) will become `"capturing"` again.
 
-### start
+### start()
 
 ```typescript
 function start(): void
@@ -271,7 +358,7 @@ function start(): void
 
 Start capturing video and/or audio. [`status`](#status) will change to `"capturing"`.
 
-### stop
+### stop()
 
 ```typescript
 function stop(): void
@@ -279,7 +366,7 @@ function stop(): void
 
 Stop capturing. [`status`](#status) will change to `"captured"` soon afterward.
 
-### snap
+### snap()
 
 ```typescript
 function snap(): void
@@ -289,15 +376,15 @@ Take a snapshot of the camera input. The result will be stored in [`capturedImag
 
 [`status`](#status) will become `"captured"` afterward if [`captureImageOnly`](#captureimageonly) is `true`.
 
-### change
+### change()
 
 ```typescript
 async function change(): Event
 ```
 
-Wait for a [`change`](#change-2) event to occur.
+Wait for a [`change`](#change-1) event to occur.
 
-### choose
+### choose()
 
 ```typescript
 function choose(id: String): void
@@ -305,7 +392,7 @@ function choose(id: String): void
 
 Choose the camera or mic with the specified ID as the recording device.
 
-### clear
+### clear()
 
 ```typescript
 function clear(): void
@@ -315,7 +402,7 @@ Clear [`capturedVideo`](#capturedvideo), [`capturedAudio`](#capturedaudio), and 
 
 ## Events
 
-* [change](#change-2)
+* [change](#change-1)
 * [chunk](#chunk)
 * [end](#end)
 

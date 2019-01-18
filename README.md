@@ -435,7 +435,7 @@ When [segmentDuration](#segmentduration) is set, the `chunk` event is emitted wh
 
 * `stopImmediatePropagation()` - stop other listeners from receiving the event
 
-## chunk
+## end
 
 When [segmentDuration](#segmentduration) is set, the `end` event is emitted when video recording has come to an end, after the final `chunk` event has occurred.
 

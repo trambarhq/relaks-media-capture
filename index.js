@@ -29,7 +29,7 @@ function RelaksMediaCapture(options) {
     this.capturedImage = undefined;
     this.lastError = null;
     this.devices = [];
-    this.selectedDeviceID = undefined;
+    this.chosenDeviceID = undefined;
 
     this.stream = undefined;
     this.audioProcessor = undefined;
@@ -127,7 +127,7 @@ prototype.acquire = function() {
         audio: this.options.audio,
     };
     return getDevices(constraints).then(function(devices) {
-        var preferred = _this.selectedDeviceID || _this.options.preferredDevice;
+        var preferred = _this.chosenDeviceID || _this.options.preferredDevice;
         var device = chooseDevice(devices, preferred);
         if (device) {
             var criteria = { deviceId: device.id };
@@ -141,7 +141,7 @@ prototype.acquire = function() {
             // stop all tracks
             _this.status = 'initiating';
             _this.devices = devices;
-            _this.selectedDeviceID = (device) ? device.id : undefined;
+            _this.chosenDeviceID = (device) ? device.id : undefined;
             _this.notifyChange();
 
             if (constraints.video) {
@@ -410,10 +410,10 @@ prototype.reacquire = function() {
  */
 prototype.choose = function(deviceID) {
     try {
-        if (this.selectedDeviceID === deviceID && this.stream) {
+        if (this.chosenDeviceID === deviceID && this.stream) {
             return Promise.resolve();
         }
-        this.selectedDeviceID = deviceID;
+        this.chosenDeviceID = deviceID;
         return this.reacquire();
     } catch (err) {
         this.lastError = err;

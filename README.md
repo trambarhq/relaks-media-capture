@@ -49,7 +49,7 @@ class VideoDialogBox extends AsyncComponent {
         do {
             props.status = this.capture.status;
             props.devices = this.capture.devices;
-            props.selectedDeviceID = this.capture.selectedDeviceID;
+            props.chosenDeviceID = this.capture.chosenDeviceID;
             props.liveVideo = this.capture.liveVideo;
             props.duration = this.capture.duration;
             props.volume = this.capture.volume;
@@ -117,7 +117,7 @@ Default value: `"image/jpeg"`
 
 ### preferredDevice
 
-A text string indicating the preferred input device. If the device label contains the text, it'll be selected.
+A text string indicating the preferred input device. If the device label contains the text, it'll be chosen.
 
 Default value: `"front"`
 
@@ -159,12 +159,12 @@ Default value: `false`
 * [capturedImage](#capturedimage)
 * [capturedAudio](#capturedaudio)
 * [capturedVideo](#capturedvideo)
+* [chosenDeviceID](#chosendeviceid)
+* [devices](#devices)
 * [duration](#duration)
 * [lastError](#error)
 * [liveAudio](#liveaudio)
 * [liveVideo](#livevideo)
-* [devices](#devices)
-* [selectedDeviceID](#selecteddeviceid)
 * [status](#status)
 * [volume](#volume)
 
@@ -201,6 +201,17 @@ The URL will be revoked when `deactivate()` is called. It should only be used wh
 
 The URL will be revoked when `deactivate()` is called. It should only be used while the media capture object is active.
 
+### chosenDeviceID
+
+ID of the currently chosen camera.
+
+### devices
+
+An array containing objects describing available input devices, each with the following properties:
+
+* `id` - the device's ID (a string)
+* `label` - the device's name
+
 ### duration
 
 Duration of the captured video/audio, in millisecond. `undefined` initially.
@@ -228,17 +239,6 @@ An object representing the input from the camera, with the following properties:
 It's available when [`video`](#video) is `true`.
 
 `height` and `width` will swap when the user rotates a phone or tablet.
-
-### devices
-
-An array containing objects describing available input devices, each with the following properties:
-
-* `id` - the device's ID (a string)
-* `label` - the device's name
-
-### selectedDeviceID
-
-ID of the currently selected camera.
 
 ### status
 

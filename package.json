@@ -3,8 +3,10 @@
   "description": "Audio and video capturing using Relaks",
   "author": "Chung Leong",
   "version": "0.0.2",
-  "main": "./index.js",
+  "main": "./index",
+  "module": "./index.mjs",
   "preferGlobal": false,
+  "sideEffects": false,
   "repository": "git://github.com/trambarhq/relaks-media-capture.git",
   "homepage": "https://github.com/trambarhq/relaks-media-capture",
   "bugs": {
@@ -27,28 +29,41 @@
     "relaks",
     "preact"
   ],
+  "files": [
+    "src/",
+    "index.js",
+    "index.mjs"
+  ],
   "scripts": {
-    "test": "./node_modules/karma/bin/karma start --single-run",
-    "test:start": "./node_modules/karma/bin/karma start"
+    "test": "./node_modules/karma/bin/karma start --single-run --",
+    "test:watch": "./node_modules/karma/bin/karma start --",
+    "rollup": "npm run rollup:umd && npm run rollup:esm",
+    "rollup:umd": "rollup -c rollup.config.js",
+    "rollup:esm": "rollup -c rollup.config.esm.js"
   },
   "dependencies": {
-    "relaks-event-emitter": "0.0.6"
+    "relaks-event-emitter": "2.0.7"
   },
   "devDependencies": {
-    "babel-core": "^6.26.3",
-    "babel-loader": "^7.0.0",
-    "babel-preset-env": "^1.7.0",
-    "chai": "^3.5.0",
+    "@babel/core": "^7.8.4",
+    "@babel/plugin-transform-runtime": "^7.8.3",
+    "@babel/preset-env": "^7.8.4",
+    "@babel/runtime": "^7.8.4",
+    "@rollup/plugin-node-resolve": "^7.1.1",
+    "babel-loader": "^8.0.6",
+    "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
-    "karma": "^3.0.0",
-    "karma-babel-preprocessor": "^6.0.1",
+    "karma": "^4.4.1",
+    "karma-babel-preprocessor": "^8.0.1",
     "karma-chai": "^0.1.0",
-    "karma-chrome-launcher": "^2.1.1",
+    "karma-chrome-launcher": "^3.1.0",
     "karma-mocha": "^1.3.0",
     "karma-sourcemap-loader": "^0.3.7",
-    "karma-webpack": "^3.0.0",
-    "lodash": "^4.17.10",
-    "mocha": "^5.2.0",
-    "webpack": "^3.0.1"
+    "karma-webpack": "^4.0.2",
+    "lodash": "^4.17.15",
+    "mocha": "^7.0.1",
+    "rollup": "^1.31.1",
+    "rollup-plugin-babel": "^4.3.3",
+    "webpack": "^4.41.6"
   }
 }

@@ -23,43 +23,43 @@ npm --save-dev install relaks-media-capture
 import RelaksMediaCapture from 'relaks-media-capture';
 
 class VideoDialogBox extends AsyncComponent {
-    constructor(props) {
-        super(props);
-        let options = {
-            video: true,
-            audio: true,
-            watchVolume: true,
-        };
-        this.capture = new RelaksMediaCapture(options);
-    }
+  constructor(props) {
+    super(props);
+    let options = {
+      video: true,
+      audio: true,
+      watchVolume: true,
+    };
+    this.capture = new RelaksMediaCapture(options);
+  }
 
-    async renderAsync(meanwhile) {
-        meanwhile.delay(50, 50);
-        let props = {
-            onStart: this.handleStart,
-            onStop: this.handleStop,
-            onPause: this.handlePause,
-            onResume: this.handleResume,
-            onClear: this.handleClear,
-            onChoose: this.handleChoose,
-            onAccept: this.handleAccept,
-            onCancel: this.handleCancel,
-        };
-        this.capture.activate();
-        do {
-            props.status = this.capture.status;
-            props.devices = this.capture.devices;
-            props.chosenDeviceID = this.capture.chosenDeviceID;
-            props.liveVideo = this.capture.liveVideo;
-            props.duration = this.capture.duration;
-            props.volume = this.capture.volume;
-            props.capturedImage = this.capture.capturedImage;
-            props.capturedVideo = this.capture.capturedVideo;
-            meanwhile.show(<VideoDialogBoxSync {...props} />);
-            await this.capture.change();
-        } while (this.capture.active);
-        return <VideoDialogBoxSync {...props} />;
-    }
+  async renderAsync(meanwhile) {
+    meanwhile.delay(50, 50);
+    let props = {
+      onStart: this.handleStart,
+      onStop: this.handleStop,
+      onPause: this.handlePause,
+      onResume: this.handleResume,
+      onClear: this.handleClear,
+      onChoose: this.handleChoose,
+      onAccept: this.handleAccept,
+      onCancel: this.handleCancel,
+    };
+    this.capture.activate();
+    do {
+      props.status = this.capture.status;
+      props.devices = this.capture.devices;
+      props.chosenDeviceID = this.capture.chosenDeviceID;
+      props.liveVideo = this.capture.liveVideo;
+      props.duration = this.capture.duration;
+      props.volume = this.capture.volume;
+      props.capturedImage = this.capture.capturedImage;
+      props.capturedVideo = this.capture.capturedVideo;
+      meanwhile.show(<VideoDialogBoxSync {...props} />);
+      await this.capture.change();
+    } while (this.capture.active);
+    return <VideoDialogBoxSync {...props} />;
+  }
 }
 ```
 
@@ -74,6 +74,7 @@ class VideoDialogBox extends AsyncComponent {
 * [imageMIMEType](#imagemimetype)
 * [preferredDevice](#preferreddevice)
 * [segmentDuration](#segmentduration)
+* [silent](#silent)
 * [video](#video)
 * [videoBitsPerSecond](#videobitspersecond)
 * [videoMIMEType](#videomimetype)
@@ -128,6 +129,12 @@ Duration of a video segment, in millisecond, that the `MediaRecorder` should yie
 When it's set, the media capture object will emit the [`chunk`](#chunk) event periodically. It'll emit the [`end`](#end) event when capturing ends.
 
 Default value: `undefined`
+
+### silent
+
+Whether errors get sent to the development console.
+
+Default value: `false`.
 
 ### video
 

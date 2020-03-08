@@ -137,9 +137,7 @@ function _possibleConstructorReturn(self, call) {
   return _assertThisInitialized(self);
 }
 
-var RelaksMediaCaptureError =
-/*#__PURE__*/
-function (_Error) {
+var RelaksMediaCaptureError = /*#__PURE__*/function (_Error) {
   _inherits(RelaksMediaCaptureError, _Error);
 
   function RelaksMediaCaptureError() {
@@ -149,11 +147,9 @@ function (_Error) {
   }
 
   return RelaksMediaCaptureError;
-}(_wrapNativeSuper(Error));
+}( /*#__PURE__*/_wrapNativeSuper(Error));
 
-var RelaksMediaCaptureEvent =
-/*#__PURE__*/
-function (_GenericEvent) {
+var RelaksMediaCaptureEvent = /*#__PURE__*/function (_GenericEvent) {
   _inherits(RelaksMediaCaptureEvent, _GenericEvent);
 
   function RelaksMediaCaptureEvent() {
@@ -181,9 +177,7 @@ var defaultOptions = {
   silent: false
 };
 
-var RelaksMediaCapture =
-/*#__PURE__*/
-function (_EventEmitter) {
+var RelaksMediaCapture = /*#__PURE__*/function (_EventEmitter) {
   _inherits(RelaksMediaCapture, _EventEmitter);
 
   function RelaksMediaCapture(options) {
@@ -725,17 +719,6 @@ function (_EventEmitter) {
 
       this.duration = undefined;
       this.notifyChange();
-    }
-    /**
-     * Wait for change to occur
-     *
-     * @return {Promise<Event>}
-     */
-
-  }, {
-    key: "change",
-    value: function change() {
-      return this.waitForEvent('change');
     }
     /**
      * Fulfill promise returned by change() and emit a change event

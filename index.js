@@ -179,9 +179,7 @@
     return Constructor;
   }
 
-  var RelaksEventEmitter =
-  /*#__PURE__*/
-  function () {
+  var RelaksEventEmitter = /*#__PURE__*/function () {
     function RelaksEventEmitter() {
       _classCallCheck$1(this, RelaksEventEmitter);
 
@@ -278,6 +276,20 @@
         return promise;
       }
       /**
+       * Return a promise that will be fulfilled when a 'change' event occurs
+       *
+       * @param  {String} type
+       * @param  {Number|undefined} timeout
+       *
+       * @return {Promise<Event>}
+       */
+
+    }, {
+      key: "change",
+      value: function change(timeout) {
+        return this.waitForEvent('change');
+      }
+      /**
        * Send event to event listeners, return true or false depending on whether
        * there were any listeners
        *
@@ -358,9 +370,7 @@
     return RelaksEventEmitter;
   }();
 
-  var RelaksGenericEvent =
-  /*#__PURE__*/
-  function () {
+  var RelaksGenericEvent = /*#__PURE__*/function () {
     function RelaksGenericEvent(type, target, props) {
       _classCallCheck$1(this, RelaksGenericEvent);
 
@@ -410,9 +420,7 @@
     return RelaksGenericEvent;
   }();
 
-  var RelaksMediaCaptureError =
-  /*#__PURE__*/
-  function (_Error) {
+  var RelaksMediaCaptureError = /*#__PURE__*/function (_Error) {
     _inherits(RelaksMediaCaptureError, _Error);
 
     function RelaksMediaCaptureError() {
@@ -422,11 +430,9 @@
     }
 
     return RelaksMediaCaptureError;
-  }(_wrapNativeSuper(Error));
+  }( /*#__PURE__*/_wrapNativeSuper(Error));
 
-  var RelaksMediaCaptureEvent =
-  /*#__PURE__*/
-  function (_GenericEvent) {
+  var RelaksMediaCaptureEvent = /*#__PURE__*/function (_GenericEvent) {
     _inherits(RelaksMediaCaptureEvent, _GenericEvent);
 
     function RelaksMediaCaptureEvent() {
@@ -454,9 +460,7 @@
     silent: false
   };
 
-  var RelaksMediaCapture =
-  /*#__PURE__*/
-  function (_EventEmitter) {
+  var RelaksMediaCapture = /*#__PURE__*/function (_EventEmitter) {
     _inherits(RelaksMediaCapture, _EventEmitter);
 
     function RelaksMediaCapture(options) {
@@ -998,17 +1002,6 @@
 
         this.duration = undefined;
         this.notifyChange();
-      }
-      /**
-       * Wait for change to occur
-       *
-       * @return {Promise<Event>}
-       */
-
-    }, {
-      key: "change",
-      value: function change() {
-        return this.waitForEvent('change');
       }
       /**
        * Fulfill promise returned by change() and emit a change event

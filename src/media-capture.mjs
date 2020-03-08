@@ -422,15 +422,6 @@ class RelaksMediaCapture extends EventEmitter {
   }
 
   /**
-   * Wait for change to occur
-   *
-   * @return {Promise<Event>}
-   */
-  change() {
-    return this.waitForEvent('change');
-  }
-
-  /**
    * Fulfill promise returned by change() and emit a change event
    */
   notifyChange() {
